@@ -374,7 +374,7 @@ open class AuthenticationView: UIView, UITextFieldDelegate {
 
     // MARK: - Public interface
 
-    open func authenticate(useTouchID: Bool, usePin: Bool, usePassword: Bool, authHandler: @escaping ((Bool, AuthErrorType) -> Void)) {
+    open func authenticate(useTouchID: Bool, usePin: Bool, usePassword: Bool, authHandler: @escaping ((_ success: Bool, _ errorType: AuthErrorType, _ continueToNext: Bool) -> Void)) {
         self.tries = 0
         self.authStateMachine.usePin = usePin
         self.authStateMachine.useTouchID = useTouchID
@@ -382,7 +382,7 @@ open class AuthenticationView: UIView, UITextFieldDelegate {
 
         if !self.authStateMachine.initiate() {
             // There is nothing to verify!
-            authHandler(true, .success)
+            authHandler(true, .success, false)
         }
         
         self.authWorkflow(authHandler: authHandler)
@@ -508,18 +508,19 @@ open class AuthenticationView: UIView, UITextFieldDelegate {
     // MARK: - Business logic
     
     /// This is the workflow of the authentication. All available authentication methods will be applied in the order of touchID -> Pin -> Password
-    private func authWorkflow(authHandler: @escaping ((Bool, AuthErrorType) -> Void)) {
+    private func authWorkflow(authHandler: @escaping ((_ success: Bool, _ errorType: AuthErrorType, _ continueToNext: Bool) -> Void)) {
         let handler: ((Bool, AuthErrorType) -> Void) = {
             success, errorType in
             if success {
-                authHandler(success, errorType)
+                authHandler(success, errorType, false)
             }
             else {
                 if self.authStateMachine.next() {
+                    authHandler(success, errorType, true)
                     self.authWorkflow(authHandler: authHandler)
                 }
                 else {
-                    authHandler(success, errorType)
+                    authHandler(success, errorType, false)
                 }
             }
         }
