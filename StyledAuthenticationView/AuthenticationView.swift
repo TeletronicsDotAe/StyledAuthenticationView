@@ -67,8 +67,6 @@ public enum AuthErrorType {
 }
 
 open class AuthenticationView: UIView, UITextFieldDelegate {
-    private var context = LAContext()
-    
     private var pinCollectionView: PINCollectionView?
     private var microPinCollectionView: MicroPINCollectionView?
     private var secRefs: [String] = []
@@ -101,6 +99,8 @@ open class AuthenticationView: UIView, UITextFieldDelegate {
     private var tries = 0
     
     open dynamic var showCancel = true
+    
+    open var context = LAContext()
     
     open dynamic var pinStyle: FlexShapeStyle = FlexShapeStyle(style: .thumb) {
         didSet {
@@ -373,7 +373,7 @@ open class AuthenticationView: UIView, UITextFieldDelegate {
     }
 
     // MARK: - Public interface
-    
+
     open func authenticate(useTouchID: Bool, usePin: Bool, usePassword: Bool, authHandler: @escaping ((Bool, AuthErrorType) -> Void)) {
         self.tries = 0
         self.authStateMachine.usePin = usePin
