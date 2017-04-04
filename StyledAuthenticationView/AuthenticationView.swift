@@ -536,16 +536,18 @@ open class AuthenticationView: UIView, UITextFieldDelegate {
     }
 
     private func authenticateWithTouchID(_ authHandler: @escaping ((Bool, AuthErrorType) -> Void)) {
-        if context.canEvaluatePolicy(LAPolicy.deviceOwnerAuthenticationWithBiometrics, error:nil) {
+        var error: NSError?
+        if context.canEvaluatePolicy(LAPolicy.deviceOwnerAuthenticationWithBiometrics, error: &error) {
             context.localizedFallbackTitle = self.usePinCodeText
             context.evaluatePolicy(LAPolicy.deviceOwnerAuthenticationWithBiometrics, localizedReason: self.touchIDDetailText,
                                    reply: { (success : Bool, error : Error? ) -> Void in
-                                    
+
                                     DispatchQueue.main.async(execute: {
                                         if success {
                                             authHandler(true, .success)
                                         }
                                         if let error = error {
+                                            NSLog("Evaluate failed: \(error._code))")
                                             switch(error._code) {
                                             case LAError.authenticationFailed.rawValue:
                                                 authHandler(false, .authFail)
@@ -560,6 +562,7 @@ open class AuthenticationView: UIView, UITextFieldDelegate {
                                     })
             })
         } else {
+            NSLog("CanEvaluate failed: \(String(describing: error?._code))")
             authHandler(false, .touchIDUnavailable)
         }
     }
