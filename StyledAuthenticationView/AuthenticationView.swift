@@ -374,7 +374,7 @@ open class AuthenticationView: UIView, UITextFieldDelegate {
 
     // MARK: - Public interface
 
-    open func authenticate(useTouchID: Bool, usePin: Bool, usePassword: Bool, authHandler: @escaping ((_ success: Bool, _ errorType: AuthErrorType, _ continueToNext: Bool) -> Void)) {
+    open func authenticate(useTouchID: Bool, usePin: Bool, usePassword: Bool, _ touchIDEvaluator: ((_ handler: (_ success : Bool, _ error : Error?) -> Void) -> Void)?, authHandler: @escaping ((_ success: Bool, _ errorType: AuthErrorType, _ continueToNext: Bool) -> Void)) {
         self.tries = 0
         self.authStateMachine.usePin = usePin
         self.authStateMachine.useTouchID = useTouchID
@@ -385,7 +385,7 @@ open class AuthenticationView: UIView, UITextFieldDelegate {
             authHandler(true, .success, false)
         }
         
-        self.authWorkflow(authHandler: authHandler)
+        self.authWorkflow(touchIDEvaluator, authHandler: authHandler)
     }
 
     open func createPINCode(createPinHandler: @escaping ((String, Bool, AuthErrorType) -> Void)) {
@@ -508,7 +508,7 @@ open class AuthenticationView: UIView, UITextFieldDelegate {
     // MARK: - Business logic
     
     /// This is the workflow of the authentication. All available authentication methods will be applied in the order of touchID -> Pin -> Password
-    private func authWorkflow(authHandler: @escaping ((_ success: Bool, _ errorType: AuthErrorType, _ continueToNext: Bool) -> Void)) {
+    private func authWorkflow(_ touchIDEvaluator: ((_ handler: (_ success : Bool, _ error : Error?) -> Void) -> Void)?, authHandler: @escaping ((_ success: Bool, _ errorType: AuthErrorType, _ continueToNext: Bool) -> Void)) {
         let handler: ((Bool, AuthErrorType) -> Void) = {
             success, errorType in
             if success {
@@ -517,7 +517,7 @@ open class AuthenticationView: UIView, UITextFieldDelegate {
             else {
                 if self.authStateMachine.next() {
                     authHandler(success, errorType, true)
-                    self.authWorkflow(authHandler: authHandler)
+                    self.authWorkflow(touchIDEvaluator, authHandler: authHandler)
                 }
                 else {
                     authHandler(success, errorType, false)
@@ -527,7 +527,7 @@ open class AuthenticationView: UIView, UITextFieldDelegate {
         
         switch self.authStateMachine.currentState {
         case .touchID:
-            self.authenticateWithTouchID(handler)
+            self.authenticateWithTouchID(touchIDEvaluator, handler)
         case .pin:
             self.authenticateWithPINCode(handler)
         case .password:
@@ -535,38 +535,35 @@ open class AuthenticationView: UIView, UITextFieldDelegate {
         }
     }
 
-    private func authenticateWithTouchID(_ authHandler: @escaping ((Bool, AuthErrorType) -> Void)) {
+    private func authenticateWithTouchID(_ touchIDEvaluator: ((_ handler: (_ success : Bool, _ error : Error?) -> Void) -> Void)?, _ authHandler: @escaping ((Bool, AuthErrorType) -> Void)) {
+        func reactOnResult(success : Bool, error : Error? ) {
+            DispatchQueue.main.async(execute: {
+                if success {
+                    authHandler(true, .success)
+                }
+                if let error = error {
+                    NSLog("Evaluate failed: \(String(describing: error)) (\(error._code))")
+                    switch(error._code) {
+                    case LAError.authenticationFailed.rawValue:
+                        authHandler(false, .authFail)
+                    case LAError.userCancel.rawValue:
+                        authHandler(false, .cancelled)
+                    case LAError.userFallback.rawValue:
+                        authHandler(false, .fallback)
+                    default:
+                        authHandler(false, .touchIDUnavailable)
+                    }
+                }
+            })
+        }
+        
+        if let touchIDEvaluator = touchIDEvaluator {
+            touchIDEvaluator(reactOnResult)
+        }
         var error: NSError?
         if context.canEvaluatePolicy(LAPolicy.deviceOwnerAuthenticationWithBiometrics, error: &error) {
             context.localizedFallbackTitle = self.usePinCodeText
-            context.evaluatePolicy(LAPolicy.deviceOwnerAuthenticationWithBiometrics, localizedReason: self.touchIDDetailText,
-                                   reply: { (success : Bool, error : Error? ) -> Void in
-
-                                    DispatchQueue.main.async(execute: {
-                                        if success {
-                                            authHandler(true, .success)
-                                        }
-                                        if let error = error {
-                                            NSLog("Evaluate failed: \(String(describing: error)) (\(error._code))")
-                                            switch(error._code) {
-                                            case LAError.authenticationFailed.rawValue:
-                                                authHandler(false, .authFail)
-                                            case LAError.userCancel.rawValue:
-                                                authHandler(false, .cancelled)
-                                            case LAError.userFallback.rawValue:
-                                                authHandler(false, .fallback)
-                                            case -1004:
-                                                DispatchQueue.main.asyncAfter(deadline: .now() + .seconds(1)) {
-                                                    self.context.invalidate()
-                                                    self.context = LAContext()
-                                                    self.authenticateWithTouchID(authHandler)
-                                                }
-                                            default:
-                                                authHandler(false, .touchIDUnavailable)
-                                            }
-                                        }
-                                    })
-            })
+            context.evaluatePolicy(LAPolicy.deviceOwnerAuthenticationWithBiometrics, localizedReason: self.touchIDDetailText, reply: reactOnResult)
         } else {
             NSLog("CanEvaluate failed: \(String(describing: error)) (\(String(describing: error?._code)))")
             authHandler(false, .touchIDUnavailable)
