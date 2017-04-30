@@ -560,13 +560,15 @@ open class AuthenticationView: UIView, UITextFieldDelegate {
         if let touchIDEvaluator = touchIDEvaluator {
             touchIDEvaluator(reactOnResult)
         }
-        var error: NSError?
-        if context.canEvaluatePolicy(LAPolicy.deviceOwnerAuthenticationWithBiometrics, error: &error) {
-            context.localizedFallbackTitle = self.usePinCodeText
-            context.evaluatePolicy(LAPolicy.deviceOwnerAuthenticationWithBiometrics, localizedReason: self.touchIDDetailText, reply: reactOnResult)
-        } else {
-            NSLog("CanEvaluate failed: \(String(describing: error)) (\(String(describing: error?._code)))")
-            authHandler(false, .touchIDUnavailable)
+        else {
+            var error: NSError?
+            if context.canEvaluatePolicy(LAPolicy.deviceOwnerAuthenticationWithBiometrics, error: &error) {
+                context.localizedFallbackTitle = self.usePinCodeText
+                context.evaluatePolicy(LAPolicy.deviceOwnerAuthenticationWithBiometrics, localizedReason: self.touchIDDetailText, reply: reactOnResult)
+            } else {
+                NSLog("CanEvaluate failed: \(String(describing: error)) (\(String(describing: error?._code)))")
+                authHandler(false, .touchIDUnavailable)
+            }
         }
     }
     
