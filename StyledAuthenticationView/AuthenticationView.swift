@@ -562,7 +562,7 @@ open class AuthenticationView: UIView, UITextFieldDelegate {
                                     })
             })
         } else {
-            NSLog("CanEvaluate failed: \(String(describing: error?._code))")
+            NSLog("CanEvaluate failed: \(String(describing: error)) (\(String(describing: error?._code)))")
             authHandler(false, .touchIDUnavailable)
         }
     }
