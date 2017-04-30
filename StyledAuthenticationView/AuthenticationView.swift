@@ -374,7 +374,7 @@ open class AuthenticationView: UIView, UITextFieldDelegate {
 
     // MARK: - Public interface
 
-    open func authenticate(useTouchID: Bool, usePin: Bool, usePassword: Bool, _ touchIDEvaluator: ((_ handler: (_ success : Bool, _ error : Error?) -> Void) -> Void)?, authHandler: @escaping ((_ success: Bool, _ errorType: AuthErrorType, _ continueToNext: Bool) -> Void)) {
+    open func authenticate(useTouchID: Bool, usePin: Bool, usePassword: Bool, _ touchIDEvaluator: ((_ handler: @escaping (_ success : Bool, _ error : Error?) -> Void) -> Void)?, authHandler: @escaping ((_ success: Bool, _ errorType: AuthErrorType, _ continueToNext: Bool) -> Void)) {
         self.tries = 0
         self.authStateMachine.usePin = usePin
         self.authStateMachine.useTouchID = useTouchID
@@ -508,7 +508,7 @@ open class AuthenticationView: UIView, UITextFieldDelegate {
     // MARK: - Business logic
     
     /// This is the workflow of the authentication. All available authentication methods will be applied in the order of touchID -> Pin -> Password
-    private func authWorkflow(_ touchIDEvaluator: ((_ handler: (_ success : Bool, _ error : Error?) -> Void) -> Void)?, authHandler: @escaping ((_ success: Bool, _ errorType: AuthErrorType, _ continueToNext: Bool) -> Void)) {
+    private func authWorkflow(_ touchIDEvaluator: ((_ handler: @escaping (_ success : Bool, _ error : Error?) -> Void) -> Void)?, authHandler: @escaping ((_ success: Bool, _ errorType: AuthErrorType, _ continueToNext: Bool) -> Void)) {
         let handler: ((Bool, AuthErrorType) -> Void) = {
             success, errorType in
             if success {
@@ -535,7 +535,7 @@ open class AuthenticationView: UIView, UITextFieldDelegate {
         }
     }
 
-    private func authenticateWithTouchID(_ touchIDEvaluator: ((_ handler: (_ success : Bool, _ error : Error?) -> Void) -> Void)?, _ authHandler: @escaping ((Bool, AuthErrorType) -> Void)) {
+    private func authenticateWithTouchID(_ touchIDEvaluator: ((_ handler: @escaping (_ success : Bool, _ error : Error?) -> Void) -> Void)?, _ authHandler: @escaping ((Bool, AuthErrorType) -> Void)) {
         func reactOnResult(success : Bool, error : Error? ) {
             DispatchQueue.main.async(execute: {
                 if success {
