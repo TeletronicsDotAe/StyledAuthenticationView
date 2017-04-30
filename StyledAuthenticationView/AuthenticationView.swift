@@ -547,7 +547,7 @@ open class AuthenticationView: UIView, UITextFieldDelegate {
                                             authHandler(true, .success)
                                         }
                                         if let error = error {
-                                            NSLog("Evaluate failed: \(error._code))")
+                                            NSLog("Evaluate failed: \(String(describing: error)) (\(error._code))")
                                             switch(error._code) {
                                             case LAError.authenticationFailed.rawValue:
                                                 authHandler(false, .authFail)
@@ -556,7 +556,9 @@ open class AuthenticationView: UIView, UITextFieldDelegate {
                                             case LAError.userFallback.rawValue:
                                                 authHandler(false, .fallback)
                                             case -1004:
-                                                DispatchQueue.main.asyncAfter(deadline: .now() + .seconds(2)) {
+                                                DispatchQueue.main.asyncAfter(deadline: .now() + .seconds(1)) {
+                                                    self.context.invalidate()
+                                                    self.context = LAContext()
                                                     self.authenticateWithTouchID(authHandler)
                                                 }
                                             default:
