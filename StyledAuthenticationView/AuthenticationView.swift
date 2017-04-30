@@ -555,6 +555,10 @@ open class AuthenticationView: UIView, UITextFieldDelegate {
                                                 authHandler(false, .cancelled)
                                             case LAError.userFallback.rawValue:
                                                 authHandler(false, .fallback)
+                                            case -1004:
+                                                DispatchQueue.main.asyncAfter(deadline: .now() + .seconds(2)) {
+                                                    self.authenticateWithTouchID(authHandler)
+                                                }
                                             default:
                                                 authHandler(false, .touchIDUnavailable)
                                             }
